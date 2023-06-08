@@ -1,70 +1,293 @@
-# Backup location
-$backuplocation = "P:\Memcards"
+function add-emulator {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.Xml.XmlDocument]
+        $xmlDoc
+    )
 
-# Check if the backup location exists and create it if it does not
-if (!(Test-Path $backuplocation)) {
-    New-Item -ItemType Directory -Path $backuplocation | Out-Null
+    # Prompt the user for a name
+    $name = Read-Host -Prompt "Enter a Emulator"
+
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $savelocation = New-Object -Typename System.Windows.Forms.FolderBrowserDialog
+        $null = $Savelocation.ShowDialog() # Suppress output by redirecting to $null
+        $savelocation = $Savelocation.SelectedPath 
+    }
+    catch {
+        <#Do this if a terminating exception happens#>
+        $savelocation = read-host -prompt "Enter a location to save the emulator"
+    }
+
+    # Get the root element
+    $root = $xmlDoc.DocumentElement
+
+    # Create a new data block element
+    $newDataBlock = $xmlDoc.CreateElement("Emulator")
+
+    # Create the name element
+    $nameElement = $xmlDoc.CreateElement("Name")
+    $nameElement.InnerText = $name
+
+    # Create the location element
+    $locationElement = $xmlDoc.CreateElement("Location")
+    $locationElement.InnerText = $savelocation
+
+    # Add the name and location elements to the new data block
+    $newDataBlock.AppendChild($nameElement)
+    $newDataBlock.AppendChild($locationElement)
+
+    # Add the new data block to the root element
+    $root.AppendChild($newDataBlock)
+    
+    return ,$root 
+}
+function remove-emulator {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.Xml.XmlDocument]
+        $xmlDoc
+    )
+
+    # Get the root element
+    $root = $xmlDoc.DocumentElement
+
+    # Get all emulator elements
+    $emulators = $root.GetElementsByTagName("Emulator")
+
+    # Check if there are any emulators
+    if ($emulators.Count -eq 0) {
+        Write-Host "No emulators found"
+        return
+    }
+
+    # Display the emulators with selectable numbers
+    Write-Host "Select an emulator to remove:"
+    for ($i = 0; $i -lt $emulators.Count; $i++) {
+        $name = $emulators[$i].GetElementsByTagName("Name")[0].InnerText
+        $location = $emulators[$i].GetElementsByTagName("Location")[0].InnerText
+        Write-Host "$($i + 1): $name ($location)"
+    }
+
+    # Prompt the user for a selection
+    do {
+        $selection = Read-Host -Prompt "Enter the number of the emulator to remove"
+    } until ($selection -ge 1 -and $selection -le $emulators.Count)
+
+    # Remove the selected emulator
+    $root.RemoveChild($emulators[$selection - 1])
 }
 
-# Define an array of emulator names and save locations
-$emulators = @(
-    @{
-        Name = "PCSX2 nightly"
-        SaveLocation = "C:\Users\Claudio Schmid\Documents\PCSX2\memcards"
-    },
-    @{
-        Name = "Dolphin GC"
-        SaveLocation = "C:\Users\Claudio Schmid\Documents\Dolphin Emulator\GC"
-    },
-    @{
-        Name = "Project64"
-        SaveLocation = "C:\Program Files (x86)\Project64 2.3\Save"
-    },
-    @{
-        Name = "CEMU"
-        SaveLocation = "C:\Program Files\Cemu_2.0\mlc01"
-    },
-    @{
-        Name = "RPCS3"
-        SaveLocation = "C:\Program Files\RPCS3\dev_hdd0\home\00000001\savedata"
-    }
-)
+function show-emulators {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.Xml.XmlDocument]
+        $xmlDoc
+    )
 
-# Function to backup emulator saves to backup location
+    # Get the root element
+    $root = $xmlDoc.DocumentElement
+
+    # Get all emulator elements
+    $emulators = $root.GetElementsByTagName("Emulator")
+
+    # Check if there are any emulators
+    if ($emulators.Count -eq 0) {
+        Write-Host "No emulators found"
+        return
+    }
+
+    # Display the emulators with selectable numbers
+    Write-Host "List of configured Emulators:"
+    for ($i = 0; $i -lt $emulators.Count; $i++) {
+        $name = $emulators[$i].GetElementsByTagName("Name")[0].InnerText
+        $location = $emulators[$i].GetElementsByTagName("Location")[0].InnerText
+        Write-Host "$($i + 1): $name ($location)"
+    }
+
+    # Wait for keystroke
+    Write-Host -ForegroundColor Red "Press any key to continue..."
+    [System.Console]::ReadKey($true)
+}
+
+# backup Saves function not tested yet pleas dont use
 function Backup-EmulatorSaves {
-    param(
-        [string]$backuplocation,
-        [hashtable[]]$emulators
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.Xml.XmlDocument]
+        $xmlDoc
     )
+
+    # Get the root element
+    $root = $xmlDoc.DocumentElement
+
+    # Get all emulator elements
+    $emulators = $root.GetElementsByTagName("Emulator")
+
+    # Iterate through the emulator elements
     foreach ($emulator in $emulators) {
-        $name = $emulator.Name
-        $saveLocation = $emulator.SaveLocation
-        Copy-Item -Path "$saveLocation" -Destination $backuplocation\$name -Recurse -Force
+        # Get the name and location values
+        $name = $emulator.GetElementsByTagName("Name")[0].InnerText
+        $location = $emulator.GetElementsByTagName("Location")[0].InnerText
+
+        # Display the name and location values
+        Write-Host "Emulator: $name"
+        Write-Host "Location: $location"
+
+        # Check if the file exists
+        if (Test-Path $location -PathType Container) {
+            # Create the backup
+            Compress-Archive -Path $location -DestinationPath (Join-Path -Path $Backupfolder -ChildPath "$name.zip")
+        } else {
+            Write-Host "File not found"
+        }
     }
 }
 
-# Function to restore emulator saves from backup location
-function Restore-EmulatorSaves {
-    param(
-        [string]$backuplocation,
-        [hashtable[]]$emulators
+function Restore-EmulatorSaves {}
+
+function Update-scriptcfg {
+
+    # Create a new data block element
+    $newDataBlock = $xmlDoc.CreateElement("Scriptconfig")
+
+    # Create the path element
+    $pathElement = $xmlDoc.CreateElement("Backupfolder")
+    $pathElement.InnerText = $Backupfolder
+
+    # Add the name and location elements to the new data block
+    $newDataBlock.AppendChild($pathElement)
+    
+    # Add the new data block to the root element
+    $root.AppendChild($newDataBlock)
+
+}
+# create basic configuration.cfg file
+function new-scriptcfg {
+
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [string]
+        $pathtocfg,
+
+        [Parameter()]
+        [string]
+        $pathtobackup
     )
-    foreach ($emulator in $emulators) {
-        $name = $emulator.Name
-        $saveLocation = $emulator.SaveLocation
-        Copy-Item -Path "$backuplocation\$name" -Destination $saveLocation -Recurse -Force
+
+    new-item -path (Join-Path -Path $PSScriptRoot -ChildPath "config") -itemtype directory 
+
+    # Create a new XML documcent
+    $emulatorxml = New-Object System.Xml.XmlDocument
+
+    # Create the XML declaration
+    $xmlDeclaration = $emulatorxml.CreateXmlDeclaration("1.0", "UTF-8", $null)
+
+    # Append the XML declaration to the document
+    $emulatorxml.AppendChild($xmlDeclaration)
+
+    # Create the root element
+    $root = $emulatorxml.CreateElement("DataBlocks")
+
+    # Append the root element to the document
+    $emulatorxml.AppendChild($root)
+
+    # Get the root element
+    $root = $emulatorxml.DocumentElement
+
+    # Create a new data block element
+    $newDataBlock = $emulatorxml.CreateElement("Scriptconfig")
+
+    # Create the path element
+    $pathElement = $emulatorxml.CreateElement("Backupfolder")
+    $pathElement.InnerText = $pathtobackup
+
+    # Add the name and location elements to the new data block
+    $newDataBlock.AppendChild($pathElement)
+    
+    # Add the new data block to the root element
+    $root.AppendChild($newDataBlock)
+
+    # Append the root element to the document
+    $emulatorxml.AppendChild($root)
+
+    $emulatorxml.Save($pathtocfg)
+
+}
+#Path to configuration file
+$pathtocfg = Join-Path -Path $PSScriptRoot -ChildPath "config/configuration.cfg"
+
+# Check if the configuration file exists if not create it in the correct format
+if (Test-Path $pathtocfg -PathType Leaf) {
+
+    # Load the XML file
+    $emulatorxml = New-Object System.Xml.XmlDocument
+    $emulatorxml.Load($pathtocfg)
+
+} else {
+
+    # Ask for backup location
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $backuplocation = New-Object -Typename System.Windows.Forms.FolderBrowserDialog
+        $null = $backuplocation.ShowDialog() # Suppress output by redirecting to $null
+        $backuplocation = $backuplocation.SelectedPath 
     }
+    catch {
+        <#Do this if a terminating exception happens#>
+        $backuplocation = read-host -prompt "Enter a location to save the emulator"
+    }
+
+    # Create basic configuration file
+    $emulatorxml = new-scriptcfg -pathtocfg $pathtocfg -pathtobackup ($backuplocation)
+    $emulatorxml = New-Object System.Xml.XmlDocument
+    $emulatorxml.Load($pathtocfg)
+ 
 }
 
-# Prompt user to choose whether to backup or restore saves
-$action = Read-Host "Enter 'backup' to backup saves or 'restore' to restore saves"
-
-if ($action -eq "backup") {
-    Backup-EmulatorSaves -backuplocation $backuplocation -emulators $emulators
-}
-elseif ($action -eq "restore") {
-    Restore-EmulatorSaves -backuplocation $backuplocation -emulators $emulators
-}
-else {
-    Write-Host "Invalid action. Please enter 'backup' or 'restore'."
+# Loop until the user exits
+while ($true) {
+    
+    # Display the menu
+    #Clear-Host
+    Write-Host -ForegroundColor Yellow "
+        Please select option:
+        1. Backup saves 
+        2. Restore saves 
+        3. Add Emulator 
+        4. Remove Emulator
+        5. Show Emulators 
+        6. Exit
+    "
+    switch ([System.Console]::ReadKey($true).KeyChar) {
+        1 {
+            Write-Host -ForegroundColor Red "not yet implemented"
+            Write-Host -ForegroundColor Red "Press any key to continue..."
+            [System.Console]::ReadKey($true)
+        }
+        2 {
+            Write-Host -ForegroundColor Red "not yet implemented"
+            Write-Host -ForegroundColor Red "Press any key to continue..."
+            [System.Console]::ReadKey($true)
+        }
+        3 {
+            add-emulator -xmlDoc $emulatorxml 
+        }
+        4 {
+            remove-emulator -xmlDoc $emulatorxml 
+        }
+        5 {
+            show-emulators -xmlDoc $emulatorxml 
+        }
+        6 {
+            exit
+        }
+    }
+        # Save the changes to the XML file
+        $emulatorxml.Save($pathtocfg)
 }
