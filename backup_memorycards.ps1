@@ -151,21 +151,32 @@ function Backup-EmulatorSaves {
 function Restore-EmulatorSaves {}
 
 function Update-scriptcfg {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [System.Xml.XmlDocument]
+        $xmlDoc
+    )
 
-    # Create a new data block element
-    $newDataBlock = $xmlDoc.CreateElement("Scriptconfig")
-
-    # Create the path element
-    $pathElement = $xmlDoc.CreateElement("Backupfolder")
-    $pathElement.InnerText = $Backupfolder
-
-    # Add the name and location elements to the new data block
-    $newDataBlock.AppendChild($pathElement)
-    
-    # Add the new data block to the root element
-    $root.AppendChild($newDataBlock)
+    Write-Output "Current Backup path: $($xmldoc.DataBlocks.Scriptconfig.Backupfolder)"
+    Write-Output "Choose new Backup path"
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        $path = New-Object -Typename System.Windows.Forms.FolderBrowserDialog
+        $null = $path.ShowDialog() # Suppress output by redirecting to $null
+        $path = $path.SelectedPath 
+    }
+    catch {
+        <#Do this if a terminating exception happens#>
+        $path = read-host -prompt "Enter a location to save the emulator"
+    }
+    # abort if no path is selected
+    if ($null -eq $path) {break}
+    # set selected folder as backup folder
+    $xmldoc.DataBlocks.scriptconfig.backupfolder = $path
 
 }
+
 # create basic configuration.cfg file
 function new-scriptcfg {
 
@@ -262,7 +273,8 @@ while ($true) {
         3. Add Emulator 
         4. Remove Emulator
         5. Show Emulators 
-        6. Exit
+        6. Update Backup path
+        7. Exit
     "
     switch ([System.Console]::ReadKey($true).KeyChar) {
         1 {
@@ -285,6 +297,9 @@ while ($true) {
             show-emulators -xmlDoc $emulatorxml 
         }
         6 {
+            Update-scriptcfg -xmlDoc $emulatorxml 
+        }
+        7 {
             exit
         }
     }
