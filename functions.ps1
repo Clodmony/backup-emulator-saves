@@ -119,7 +119,15 @@ function Backup-EmulatorSaves {
     param (
         [Parameter()]
         [System.Xml.XmlDocument]
-        $xmlDoc
+        $xmlDoc,
+
+        [Parameter()]
+        [switch]
+        $backup,
+
+        [Parameter()]
+        [switch]
+        $restore
     )
 
     # Get the root element
@@ -139,16 +147,23 @@ function Backup-EmulatorSaves {
         Write-Host "Location: $location"
 
         # Check if the file exists
-        if (Test-Path $location -PathType Container) {
-            # Create the backup
-            Compress-Archive -Path $location -DestinationPath (Join-Path -Path $xmldoc.DataBlocks.scriptconfig.backupfolder -ChildPath "$name.zip")
-        } else {
-            Write-Host "File not found"
+        if ($PSBoundParameters.ContainsKey('backup')) {
+            if (Test-Path $location -PathType Container) {
+                # Create the backup
+                Compress-Archive -Path "$location\*" -DestinationPath (Join-Path -Path $xmldoc.DataBlocks.scriptconfig.backupfolder -ChildPath "$name.zip") -force
+            } else {
+                Write-Host "File not found"
+            }
+        } elseif ($PSBoundParameters.ContainsKey('restore')) {
+            if (Test-Path $location -PathType Container) {
+                # Create the backup
+                expand-Archive -Path (Join-Path -Path $xmldoc.DataBlocks.scriptconfig.backupfolder -ChildPath "$name.zip") -DestinationPath $location -Force
+            } else {
+                Write-Host "File not found"
+            }
         }
     }
 }
-
-function Restore-EmulatorSaves {}
 
 function Update-scriptcfg {
     [CmdletBinding()]

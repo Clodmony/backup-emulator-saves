@@ -49,12 +49,10 @@ while ($true) {
     "
     switch ([System.Console]::ReadKey($true).KeyChar) {
         1 {
-            Backup-EmulatorSaves -xmlDoc $emulatorxml
+            Backup-EmulatorSaves -xmlDoc $emulatorxml -backup
         }
         2 {
-            Write-Host -ForegroundColor Red "not yet implemented"
-            Write-Host -ForegroundColor Red "Press any key to continue..."
-            [System.Console]::ReadKey($true)
+            Backup-EmulatorSaves -xmlDoc $emulatorxml -restore
         }
         3 {
             add-emulator -xmlDoc $emulatorxml 
