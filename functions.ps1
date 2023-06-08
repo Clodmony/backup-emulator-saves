@@ -141,7 +141,7 @@ function Backup-EmulatorSaves {
         # Check if the file exists
         if (Test-Path $location -PathType Container) {
             # Create the backup
-            Compress-Archive -Path $location -DestinationPath (Join-Path -Path $Backupfolder -ChildPath "$name.zip")
+            Compress-Archive -Path $location -DestinationPath (Join-Path -Path $xmldoc.DataBlocks.scriptconfig.backupfolder -ChildPath "$name.zip")
         } else {
             Write-Host "File not found"
         }

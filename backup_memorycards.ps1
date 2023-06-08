@@ -49,9 +49,7 @@ while ($true) {
     "
     switch ([System.Console]::ReadKey($true).KeyChar) {
         1 {
-            Write-Host -ForegroundColor Red "not yet implemented"
-            Write-Host -ForegroundColor Red "Press any key to continue..."
-            [System.Console]::ReadKey($true)
+            Backup-EmulatorSaves -xmlDoc $emulatorxml
         }
         2 {
             Write-Host -ForegroundColor Red "not yet implemented"
