@@ -40,8 +40,6 @@ function add-emulator {
 
     # Add the new data block to the root element
     $root.AppendChild($newDataBlock)
-    
-    return ,$root 
 }
 function remove-emulator {
     [CmdletBinding()]
