@@ -128,11 +128,43 @@ function Backup-EmulatorSaves {
         $restore
     )
 
+    if ($PSBoundParameters.ContainsKey('backup')){
+        $action = "backup"
+    } elseif ($PSBoundParameters.ContainsKey('restore')) {
+        $action = "restore"
+    }
+
     # Get the root element
     $root = $xmlDoc.DocumentElement
 
     # Get all emulator elements
     $emulators = $root.GetElementsByTagName("Emulator")
+
+    # Check if there are any emulators
+    if ($emulators.Count -eq 0) {
+        Write-Host "No emulators found"
+        return
+    }
+
+    write-host "$action all emulators? (y/n)"
+    if([System.Console]::ReadKey($true).KeyChar -eq "n") {
+
+        # Display the emulators with selectable numbers
+        Write-Host "Select an emulator:"
+        for ($i = 0; $i -lt $emulators.Count; $i++) {
+            $name = $emulators[$i].GetElementsByTagName("Name")[0].InnerText
+            $location = $emulators[$i].GetElementsByTagName("Location")[0].InnerText
+            Write-Host "$($i + 1): $name ($location)"
+        }
+
+        # Prompt the user for a selection
+        do {
+            $selection = Read-Host -Prompt "Enter the number of the emulator"
+        } until ($selection -ge 1 -and $selection -le $emulators.Count)
+
+        $emulators = $emulators[$selection - 1]
+
+    }
 
     # Iterate through the emulator elements
     foreach ($emulator in $emulators) {
@@ -142,8 +174,8 @@ function Backup-EmulatorSaves {
 
         # Display the name and location values
         Write-Host "Emulator: $name"
-        Write-Host "Location: $location"
-
+        Write-Host "    Location: $location"
+        
         # Check if the file exists
         if ($PSBoundParameters.ContainsKey('backup')) {
             if (Test-Path $location -PathType Container) {
@@ -160,8 +192,10 @@ function Backup-EmulatorSaves {
                 Write-Host "File not found"
             }
         }
+        
     }
 }
+
 
 function Update-scriptcfg {
     [CmdletBinding()]
