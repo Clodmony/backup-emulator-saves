@@ -1,3 +1,10 @@
+[CmdletBinding()]
+param (
+    [Parameter()]
+    [switch]
+    $scheduled
+)
+
 # load function file
 . "$PSScriptRoot\functions.ps1"
 
@@ -32,44 +39,51 @@ if (Test-Path $pathtocfg -PathType Leaf) {
  
 }
 
-# Loop until the user exits
-while ($true) {
-    
-    # Display the menu
-    #Clear-Host
-    Write-Host -ForegroundColor Yellow "
-        Please select option:
-        1. Backup saves 
-        2. Restore saves 
-        3. Add Emulator 
-        4. Remove Emulator
-        5. Show Emulators 
-        6. Update Backup path
-        7. Exit
-    "
-    switch ([System.Console]::ReadKey($true).KeyChar) {
-        1 {
-            Backup-EmulatorSaves -xmlDoc $emulatorxml -backup
+if (!($PSBoundParameters.ContainsKey('scheduled'))) {
+
+    # Loop until the user exits
+    while ($true) {
+        
+        # Display the menu
+        #Clear-Host
+        Write-Host -ForegroundColor Yellow "
+            Please select option:
+            1. Backup saves 
+            2. Restore saves 
+            3. Add Emulator 
+            4. Remove Emulator
+            5. Show Emulators 
+            6. Update Backup path
+            7. Exit
+        "
+        switch ([System.Console]::ReadKey($true).KeyChar) {
+            1 {
+                Backup-EmulatorSaves -xmlDoc $emulatorxml -backup
+            }
+            2 {
+                Backup-EmulatorSaves -xmlDoc $emulatorxml -restore
+            }
+            3 {
+                add-emulator -xmlDoc $emulatorxml 
+            }
+            4 {
+                remove-emulator -xmlDoc $emulatorxml 
+            }
+            5 {
+                show-emulators -xmlDoc $emulatorxml 
+            }
+            6 {
+                Update-scriptcfg -xmlDoc $emulatorxml 
+            }
+            7 {
+                exit
+            }
         }
-        2 {
-            Backup-EmulatorSaves -xmlDoc $emulatorxml -restore
-        }
-        3 {
-            add-emulator -xmlDoc $emulatorxml 
-        }
-        4 {
-            remove-emulator -xmlDoc $emulatorxml 
-        }
-        5 {
-            show-emulators -xmlDoc $emulatorxml 
-        }
-        6 {
-            Update-scriptcfg -xmlDoc $emulatorxml 
-        }
-        7 {
-            exit
-        }
+            # Save the changes to the XML file
+            $emulatorxml.Save($pathtocfg)
     }
-        # Save the changes to the XML file
-        $emulatorxml.Save($pathtocfg)
+} else {
+
+    Backup-EmulatorSaves -xmlDoc $emulatorxml -backup -force
+
 }

@@ -125,7 +125,12 @@ function Backup-EmulatorSaves {
 
         [Parameter()]
         [switch]
-        $restore
+        $restore,
+
+        [Parameter()]
+        [switch]
+        $force
+
     )
 
     if ($PSBoundParameters.ContainsKey('backup')){
@@ -146,26 +151,27 @@ function Backup-EmulatorSaves {
         return
     }
 
-    write-host "$action all emulators? (y/n)"
-    if([System.Console]::ReadKey($true).KeyChar -eq "n") {
+    if (!($PSBoundParameters.ContainsKey('force'))) {
+        write-host "$action all emulators? (y/n)"
+        if([System.Console]::ReadKey($true).KeyChar -eq "n") {
 
-        # Display the emulators with selectable numbers
-        Write-Host "Select an emulator:"
-        for ($i = 0; $i -lt $emulators.Count; $i++) {
-            $name = $emulators[$i].GetElementsByTagName("Name")[0].InnerText
-            $location = $emulators[$i].GetElementsByTagName("Location")[0].InnerText
-            Write-Host "$($i + 1): $name ($location)"
+            # Display the emulators with selectable numbers
+            Write-Host "Select an emulator:"
+            for ($i = 0; $i -lt $emulators.Count; $i++) {
+                $name = $emulators[$i].GetElementsByTagName("Name")[0].InnerText
+                $location = $emulators[$i].GetElementsByTagName("Location")[0].InnerText
+                Write-Host "$($i + 1): $name ($location)"
+            }
+
+            # Prompt the user for a selection
+            do {
+                $selection = Read-Host -Prompt "Enter the number of the emulator"
+            } until ($selection -ge 1 -and $selection -le $emulators.Count)
+
+            $emulators = $emulators[$selection - 1]
+
         }
-
-        # Prompt the user for a selection
-        do {
-            $selection = Read-Host -Prompt "Enter the number of the emulator"
-        } until ($selection -ge 1 -and $selection -le $emulators.Count)
-
-        $emulators = $emulators[$selection - 1]
-
     }
-
     # Iterate through the emulator elements
     foreach ($emulator in $emulators) {
         # Get the name and location values
